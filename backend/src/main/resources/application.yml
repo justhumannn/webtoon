@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: webtoon-badge-backend
+
+server:
+  port: ${PORT:8080}
+  # Nginx 같은 리버스 프록시 뒤에서 X-Forwarded-For 로 실제 클라이언트 IP를 받기 위함
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  naver:
+    base-url: https://comic.naver.com/community/api
+    user-agent: "Mozilla/5.0 (compatible; webtoon-badge/0.1; non-commercial personal project)"
+    connect-timeout: 3s
+    read-timeout: 5s
+    page-size: 30
+    max-pages: 40
+    page-delay: 150ms
+  cache:
+    ttl: 10m
+    max-size: 500
+  rate-limit:
+    badges-per-minute: 10
+    images-per-minute: 600
+  image-proxy:
+    # 이 도메인(또는 그 하위 도메인)의 https 이미지만 대신 받아줌 → 임의 URL 요청(SSRF) 방지
+    allowed-domains:
+      - pstatic.net
+    max-bytes: 3145728

@@ -1,0 +1,53 @@
+name: webtoon
+
+# 모든 서비스에 공통으로 쓸 로그 설정 (YAML 앵커)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"   # 파일 하나 최대 10MB
+    max-file: "3"     # 최대 3개 → 서비스당 30MB 이내
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro      # certbot 이 발급한 인증서 (5장)
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy                # backend 가 준비된 뒤에 시작
+    restart: unless-stopped
+    logging: *default-logging
+
+  frontend:
+    image: ${IMAGE_REPO}/webtoon-frontend:${TAG}
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 256m
+    restart: unless-stopped
+    logging: *default-logging
+
+  backend:
+    image: ${IMAGE_REPO}/webtoon-backend:${TAG}
+    env_file:
+      - backend.env                               # 환경변수 파일 (git 에 넣지 않음)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s                           # Spring 이 뜨는 동안은 실패로 치지 않음
+    mem_limit: 640m
+    restart: unless-stopped
+    logging: *default-logging
