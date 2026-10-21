@@ -18,7 +18,7 @@ pipeline {
     }
 
     tools {
-        nodejs 'node-22'
+        nodejs 'node-26'
     }
 
     environment {
